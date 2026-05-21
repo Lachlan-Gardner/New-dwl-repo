@@ -332,6 +332,7 @@ static void setsel(struct wl_listener *listener, void *data);
 static void setup(void);
 static void spawn(const Arg *arg);
 static void startdrag(struct wl_listener *listener, void *data);
+static void swapfocus(const Arg *arg);
 static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *m);
@@ -377,6 +378,7 @@ static struct wlr_xdg_activation_v1 *activation;
 static struct wlr_xdg_decoration_manager_v1 *xdg_decoration_mgr;
 static struct wl_list clients; /* tiling order */
 static struct wl_list fstack;  /* focus order */
+static Client *prevclient = NULL;
 static struct wlr_idle_notifier_v1 *idle_notifier;
 static struct wlr_idle_inhibit_manager_v1 *idle_inhibit_mgr;
 static struct wlr_layer_shell_v1 *layer_shell;
@@ -1331,6 +1333,8 @@ destroynotify(struct wl_listener *listener, void *data)
 {
 	/* Called when the xdg_toplevel is destroyed. */
 	Client *c = wl_container_of(listener, c, destroy);
+	if (c == prevclient)
+		prevclient = NULL;
 	wl_list_remove(&c->destroy.link);
 	wl_list_remove(&c->set_title.link);
 	wl_list_remove(&c->fullscreen.link);
@@ -1424,6 +1428,11 @@ void focusclient(Client *c, int lift)
 		struct wlr_xdg_popup *popup, *tmp;
 		wl_list_for_each_safe(popup, tmp, &old_c->surface.xdg->popups, link)
 			wlr_xdg_popup_destroy(popup);
+	}
+
+	/* Capture the client losing focus as the previous client */
+	if (old_c && !client_is_unmanaged(old_c) && old_c != c) {
+		prevclient = old_c;
 	}
 
 	/* Put the new client atop the focus stack and select its monitor */
@@ -2707,6 +2716,87 @@ spawn(const Arg *arg)
 		setsid();
 		execvp(((char **)arg->v)[0], (char **)arg->v);
 		die("dwl: execvp %s failed:", ((char **)arg->v)[0]);
+	}
+}
+
+void
+swapfocus(const Arg *arg)
+{
+	Client *c;
+	int found = 0;
+
+	/* Verify the client still exists in the list of managed windows */
+	if (prevclient) {
+		wl_list_for_each(c, &clients, link) {
+			if (c == prevclient) {
+				found = 1;
+				break;
+			}
+		}
+	}
+
+	if (found && !client_is_unmanaged(prevclient)) {
+		/* Get the bitmask of currently visible tags on the prevclient's monitor */
+		unsigned int visible_tags = prevclient->mon->tagset[prevclient->mon->seltags];
+
+		/* Check if the client's tags are currently visible */
+		if (!(prevclient->tags & visible_tags)) {
+			/* Tag is NOT visible: Switch tags and monitor only.
+			 * dwl's view() calls arrange(), which automatically focuses the 
+			 * top-most window in the focus stack for that tag. */
+			Arg a = {.ui = prevclient->tags};
+			selmon = prevclient->mon;
+			view(&a);
+
+			/* Comment out the 3 lines above and
+			 * uncommment the following lines
+			 * if changing tags isn't desired */
+			 
+//			int current_tag_clients = 0;
+//			Client *tmp;
+//			wl_list_for_each(tmp, &clients, link) {
+//				/* Make sure it's on the current monitor, visible on the current tag, and mapped */
+//				if (tmp->mon == selmon && (tmp->tags & selmon->tagset[selmon->seltags]) && !client_is_unmanaged(tmp)) {
+//					current_tag_clients++;
+//				}
+//			}
+//
+//			/* If there's more than 1 window here, mimic Mod+k instead of switching tags */
+//			if (current_tag_clients > 1) {
+//				Arg arg_focus = {.i = -1};
+//				focusstack(&arg_focus);
+//			}
+			
+			/* End of not changing tags logic */
+		} else {
+			/* Tag IS visible: Just swap focus within the same view */
+			focusclient(prevclient, 1);
+		}
+	} else {
+		Arg a = {.ui = 0};
+		selmon = prevclient->mon;
+		view(&a);
+
+		/* Comment out the 3 lines above and
+		 * uncommment the following lines
+		 * if changing tags isn't desired */
+
+		/* use the following if changing tags isn't desired */
+//		int current_tag_clients = 0;
+//		Client *tmp;
+//		wl_list_for_each(tmp, &clients, link) {
+//			/* Make sure it's on the current monitor, visible on the current tag, and mapped */
+//			if (tmp->mon == selmon && (tmp->tags & selmon->tagset[selmon->seltags]) && !client_is_unmanaged(tmp)) {
+//				current_tag_clients++;
+//			}
+//		}
+//
+//		/* If there's more than 1 window here, mimic Mod+k instead of switching tags */
+//		if (current_tag_clients > 1) {
+//			Arg arg_focus = {.i = -1};
+//			focusstack(&arg_focus);
+//		}
+		/* end of not changing tags logic */
 	}
 }
 
