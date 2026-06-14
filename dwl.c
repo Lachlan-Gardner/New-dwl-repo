@@ -401,6 +401,7 @@ static KeyboardGroup *kb_group;
 static unsigned int cursor_mode;
 static Client *grabc;
 static int grabcx, grabcy; /* client-relative */
+static int rzcorner;
 
 static struct wlr_output_layout *output_layout;
 static struct wlr_box sgeom;
@@ -614,9 +615,7 @@ axisnotify(struct wl_listener *listener, void *data)
 	/* TODO: allow usage of scroll wheel for mousebindings, it can be implemented
 	 * by checking the event's orientation and the delta of the event */
 	/* Notify the client with pointer focus of the axis event. */
-	wlr_seat_pointer_notify_axis(seat,
-			event->time_msec, event->orientation, event->delta,
-			event->delta_discrete, event->source, event->relative_direction);
+	wlr_seat_pointer_notify_axis(seat, event->time_msec, event->orientation, event->delta, event->delta_discrete, event->source, event->relative_direction);
 }
 
 void
@@ -827,7 +826,8 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data)
 	struct wlr_layer_surface_v1_state old_state;
 
 	if (l->layer_surface->initial_commit) {
-		client_set_scale(layer_surface->surface, l->mon->wlr_output->scale);
+		wlr_fractional_scale_v1_notify_scale(layer_surface->surface, l->mon->wlr_output->scale);
+		wlr_surface_set_preferred_buffer_scale(layer_surface->surface, (int32_t)ceilf(l->mon->wlr_output->scale));
 
 		/* Temporarily set the layer's current state to pending
 		 * so that we can easily arrange it */
@@ -1117,8 +1117,7 @@ createmon(struct wl_listener *listener, void *data)
 		wlr_output_layout_add(output_layout, wlr_output, m->m.x, m->m.y);
 }
 
-void
-createnotify(struct wl_listener *listener, void *data)
+void createnotify(struct wl_listener *listener, void *data)
 {
 	/* This event is raised when a client creates a new toplevel (application window). */
 	struct wlr_xdg_toplevel *toplevel = data;
@@ -1400,9 +1399,11 @@ dirtomon(enum wlr_direction dir)
 	return selmon;
 }
 
-void
-focusclient(Client *c, int lift)
+focusOld
+
+void focusclient(Client *c, int lift)
 {
+	// The last focused window.
 	struct wlr_surface *old = seat->keyboard_state.focused_surface;
 	int unused_lx, unused_ly, old_client_type;
 	Client *old_c = NULL;
@@ -1486,8 +1487,7 @@ focusmon(const Arg *arg)
 	focusclient(focustop(selmon), 1);
 }
 
-void
-focusstack(const Arg *arg)
+void focusstack(const Arg *arg)
 {
 	/* Focus the next or previous client (in tiling order) on selmon */
 	Client *c, *sel = focustop(selmon);
@@ -1567,8 +1567,7 @@ handlesig(int signo)
 		quit(NULL);
 }
 
-void
-incnmaster(const Arg *arg)
+void incnmaster(const Arg *arg)
 {
 	if (!arg || !selmon)
 		return;
@@ -1924,8 +1923,27 @@ motionnotify(uint32_t time, struct wlr_input_device *device, double dx, double d
 			.width = grabc->geom.width, .height = grabc->geom.height}, 1);
 		return;
 	} else if (cursor_mode == CurResize) {
-		resize(grabc, (struct wlr_box){.x = grabc->geom.x, .y = grabc->geom.y,
-			.width = (int)round(cursor->x) - grabc->geom.x, .height = (int)round(cursor->y) - grabc->geom.y}, 1);
+		int cdx = (int)round(cursor->x) - grabcx;
+		int cdy = (int)round(cursor->y) - grabcy;
+
+		cdx = !(rzcorner & 1) && grabc->geom.width - 2 * (int)grabc->bw - cdx < 1 ? 0 : cdx;
+		cdy = !(rzcorner & 2) && grabc->geom.height - 2 * (int)grabc->bw - cdy < 1 ? 0 : cdy;
+
+		const struct wlr_box box = {
+			.x      = grabc->geom.x      + (rzcorner & 1 ? 0   :  cdx),
+			.y      = grabc->geom.y      + (rzcorner & 2 ? 0   :  cdy),
+			.width  = grabc->geom.width  + (rzcorner & 1 ? cdx : -cdx),
+			.height = grabc->geom.height + (rzcorner & 2 ? cdy : -cdy)
+		};
+		resize(grabc, box, 1);
+
+		if (!lock_cursor) {
+			grabcx += cdx;
+			grabcy += cdy;
+		} else {
+			wlr_cursor_warp_closest(cursor, NULL, grabcx, grabcy);
+		}
+
 		return;
 	}
 
@@ -1971,12 +1989,24 @@ moveresize(const Arg *arg)
 		wlr_cursor_set_xcursor(cursor, cursor_mgr, "all-scroll");
 		break;
 	case CurResize:
-		/* Doesn't work for X11 output - the next absolute motion event
-		 * returns the cursor to where it started */
-		wlr_cursor_warp_closest(cursor, NULL,
-				grabc->geom.x + grabc->geom.width,
-				grabc->geom.y + grabc->geom.height);
-		wlr_cursor_set_xcursor(cursor, cursor_mgr, "se-resize");
+		const char *cursors[] = { "nw-resize", "ne-resize", "sw-resize", "se-resize" };
+
+		rzcorner = resize_corner;
+		grabcx = (int)round(cursor->x);
+		grabcy = (int)round(cursor->y);
+
+		if (rzcorner == 4)
+			/* identify the closest corner index */
+			rzcorner = (grabcx - grabc->geom.x < grabc->geom.x + grabc->geom.width  - grabcx ? 0 : 1)
+			         + (grabcy - grabc->geom.y < grabc->geom.y + grabc->geom.height - grabcy ? 0 : 2);
+
+		if (warp_cursor) {
+			grabcx = rzcorner & 1 ? grabc->geom.x + grabc->geom.width  : grabc->geom.x;
+			grabcy = rzcorner & 2 ? grabc->geom.y + grabc->geom.height : grabc->geom.y;
+			wlr_cursor_warp_closest(cursor, NULL, grabcx, grabcy);
+		}
+
+		wlr_cursor_set_xcursor(cursor, cursor_mgr, cursors[rzcorner]);
 		break;
 	}
 }
