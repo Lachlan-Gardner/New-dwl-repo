@@ -1,3 +1,8 @@
+//TODO Foreign toplevel manager for taskbar.
+//TODO Add min resize.
+//TODO Minimise and maximise.
+//TODO Revert before ipc.
+
 /*
  * See LICENSE file for copyright and license details.
  */
