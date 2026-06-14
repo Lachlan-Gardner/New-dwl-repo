@@ -363,6 +363,8 @@ static struct wlr_backend *backend;
 static struct wlr_scene *scene;
 static struct wlr_scene_tree *layers[NUM_LAYERS];
 static struct wlr_scene_tree *drag_icon;
+/// Holds the last focused window so it can be Alt Tabbed to.
+struct wlr_surface *lastFocused;
 /* Map from ZWLR_LAYER_SHELL_* constants to Lyr* enum */
 static const int layermap[] = { LyrBg, LyrBottom, LyrTop, LyrOverlay };
 static struct wlr_renderer *drw;
@@ -1399,12 +1401,11 @@ dirtomon(enum wlr_direction dir)
 	return selmon;
 }
 
-focusOld
-
 void focusclient(Client *c, int lift)
 {
 	// The last focused window.
 	struct wlr_surface *old = seat->keyboard_state.focused_surface;
+	lastFocused = old;
 	int unused_lx, unused_ly, old_client_type;
 	Client *old_c = NULL;
 	LayerSurface *old_l = NULL;
