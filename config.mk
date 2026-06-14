@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 _VERSION = 0.8-dev
-=======
-_VERSION = 0.7
->>>>>>> better-resize
 VERSION  = `git describe --tags --dirty 2>/dev/null || echo $(_VERSION)`
 
 PKG_CONFIG = pkg-config
