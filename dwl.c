@@ -141,8 +141,6 @@ typedef struct {
 	struct wl_listener fclose;
 	struct wl_listener ffullscreen;
 	struct wl_listener fdestroy;
-	struct wlr_box prev; /* layout-relative, includes border */
-	struct wlr_box bounds;
 #ifdef XWAYLAND
 	struct wl_listener activate;
 	struct wl_listener associate;
@@ -3309,7 +3307,7 @@ updatetitle(struct wl_listener *listener, void *data)
 	if (c->foreign_toplevel) {
 		const char *title;
 		if (!(title = client_get_title(c)))
-			title = broken;
+			title = "broken" /*Used to be broken*/;
 		wlr_foreign_toplevel_handle_v1_set_title(c->foreign_toplevel, title);
 	}
 	if (c == focustop(c->mon))
