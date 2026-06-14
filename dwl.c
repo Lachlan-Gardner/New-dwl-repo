@@ -591,9 +591,7 @@ axisnotify(struct wl_listener *listener, void *data)
 	/* TODO: allow usage of scroll whell for mousebindings, it can be implemented
 	 * checking the event's orientation and the delta of the event */
 	/* Notify the client with pointer focus of the axis event. */
-	wlr_seat_pointer_notify_axis(seat,
-			event->time_msec, event->orientation, event->delta,
-			event->delta_discrete, event->source, event->relative_direction);
+	wlr_seat_pointer_notify_axis(seat, event->time_msec, event->orientation, event->delta, event->delta_discrete, event->source, event->relative_direction);
 }
 
 void
@@ -726,8 +724,7 @@ cleanupmon(struct wl_listener *listener, void *data)
 	free(m);
 }
 
-void
-closemon(Monitor *m)
+void closemon(Monitor *m)
 {
 	/* update selmon if needed and
 	 * move closed monitor's clients to the focused one */
@@ -1051,8 +1048,7 @@ createmon(struct wl_listener *listener, void *data)
 		wlr_output_layout_add(output_layout, wlr_output, m->m.x, m->m.y);
 }
 
-void
-createnotify(struct wl_listener *listener, void *data)
+void createnotify(struct wl_listener *listener, void *data)
 {
 	/* This event is raised when a client creates a new toplevel (application window). */
 	struct wlr_xdg_toplevel *toplevel = data;
@@ -1337,9 +1333,11 @@ dirtomon(enum wlr_direction dir)
 	return selmon;
 }
 
-void
-focusclient(Client *c, int lift)
+focusOld
+
+void focusclient(Client *c, int lift)
 {
+	// The last focused window.
 	struct wlr_surface *old = seat->keyboard_state.focused_surface;
 	int unused_lx, unused_ly, old_client_type;
 	Client *old_c = NULL;
@@ -1424,8 +1422,7 @@ focusmon(const Arg *arg)
 	focusclient(focustop(selmon), 1);
 }
 
-void
-focusstack(const Arg *arg)
+void focusstack(const Arg *arg)
 {
 	/* Focus the next or previous client (in tiling order) on selmon */
 	Client *c, *sel = focustop(selmon);
@@ -1516,8 +1513,7 @@ handlesig(int signo)
 	}
 }
 
-void
-incnmaster(const Arg *arg)
+void incnmaster(const Arg *arg)
 {
 	if (!arg || !selmon)
 		return;

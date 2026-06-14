@@ -144,7 +144,6 @@ static const Key keys[] = {
 	{ MODKEY,                    XKB_KEY_t,           spawn,            {.v = termcmd} },
   	{ MODKEY,                    XKB_KEY_f,           spawn,            {.v = browser} },
 	{ MODKEY,                    XKB_KEY_j,           focusstack,       {.i = +1} },
-	{ MODKEY,                    XKB_KEY_k,           focusstack,       {.i = -1} },
 	{ MODKEY,                    XKB_KEY_i,           incnmaster,       {.i = +1} },
 	{ MODKEY,                    XKB_KEY_d,           incnmaster,       {.i = -1} },
 	{ MODKEY,                    XKB_KEY_h,           setmfact,         {.f = -0.05f} },
