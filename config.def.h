@@ -143,7 +143,7 @@ static const Key keys[] = {
 	{ WLR_MODIFIER_ALT,          XKB_KEY_r,           spawn,            {.v = menucmd} },
 	{ MODKEY,                    XKB_KEY_t,           spawn,            {.v = termcmd} },
   	{ MODKEY,                    XKB_KEY_f,           spawn,            {.v = browser} },
-	{ WLR_MODIFIER_ALT, 		 XKB_KEY_Tab,		  swapfocus,        {0} }
+	{ WLR_MODIFIER_ALT, 		 XKB_KEY_Tab,		  swapfocus,        {0} },
 	{ MODKEY,                    XKB_KEY_j,           focusstack,       {.i = +1} },
 	{ MODKEY,                    XKB_KEY_k,           focusstack,       {.i = -1} },
 	{ MODKEY,                    XKB_KEY_i,           incnmaster,       {.i = +1} },

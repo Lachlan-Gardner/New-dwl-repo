@@ -1434,7 +1434,6 @@ dirtomon(enum wlr_direction dir)
 }
 
 void focusclient(Client *c, int lift) {
-	{
 	// The last focused window.
 	struct wlr_surface *old = seat->keyboard_state.focused_surface;
 	lastFocused = old;
@@ -1697,87 +1696,6 @@ void
 dwl_ipc_output_release(struct wl_client *client, struct wl_resource *resource)
 {
 	wl_resource_destroy(resource);
-}
-
-void
-focusclient(Client *c, int lift)
-{
-	// The last focused window.
-	struct wlr_surface *old = seat->keyboard_state.focused_surface;
-	lastFocused = old;
-	int unused_lx, unused_ly, old_client_type;
-	Client *old_c = NULL;
-	LayerSurface *old_l = NULL;
-
-	if (locked)
-		return;
-
-	/* Raise client in stacking order if requested */
-	if (c && lift)
-		wlr_scene_node_raise_to_top(&c->scene->node);
-
-	if (c && client_surface(c) == old)
-		return;
-
-	if ((old_client_type = toplevel_from_wlr_surface(old, &old_c, &old_l)) == XDGShell) {
-		struct wlr_xdg_popup *popup, *tmp;
-		wl_list_for_each_safe(popup, tmp, &old_c->surface.xdg->popups, link)
-			wlr_xdg_popup_destroy(popup);
-	}
-
-	/* Capture the client losing focus as the previous client */
-	if (old_c && !client_is_unmanaged(old_c) && old_c != c) {
-		prevclient = old_c;
-	}
-
-	/* Put the new client atop the focus stack and select its monitor */
-	if (c && !client_is_unmanaged(c)) {
-		wl_list_remove(&c->flink);
-		wl_list_insert(&fstack, &c->flink);
-		selmon = c->mon;
-		c->isurgent = 0;
-
-		/* Don't change border color if there is an exclusive focus or we are
-		 * handling a drag operation */
-		if (!exclusive_focus && !seat->drag)
-			client_set_border_color(c, focuscolor);
-	}
-
-	/* Deactivate old client if focus is changing */
-	if (old && (!c || client_surface(c) != old)) {
-		/* If an overlay is focused, don't focus or activate the client,
-		 * but only update its position in fstack to render its border with focuscolor
-		 * and focus it after the overlay is closed. */
-		if (old_client_type == LayerShell && wlr_scene_node_coords(
-					&old_l->scene->node, &unused_lx, &unused_ly)
-				&& old_l->layer_surface->current.layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
-			return;
-		} else if (old_c && old_c == exclusive_focus && client_wants_focus(old_c)) {
-			return;
-		/* Don't deactivate old client if the new one wants focus, as this causes issues with winecfg
-		 * and probably other clients */
-		} else if (old_c && !client_is_unmanaged(old_c) && (!c || !client_wants_focus(c))) {
-			client_set_border_color(old_c, bordercolor);
-
-			client_activate_surface(old, 0);
-		}
-	}
-	printstatus();
-
-	if (!c) {
-		/* With no client, all we have left is to clear focus */
-		wlr_seat_keyboard_notify_clear_focus(seat);
-		return;
-	}
-
-	/* Change cursor surface */
-	motionnotify(0, NULL, 0, 0, 0, 0);
-
-	/* Have a client, so focus its top-level wlr_surface */
-	client_notify_enter(client_surface(c), wlr_seat_get_keyboard(seat));
-
-	/* Activate the new client */
-	client_activate_surface(client_surface(c), 1);
 }
 
 void
