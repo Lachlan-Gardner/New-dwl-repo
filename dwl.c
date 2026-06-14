@@ -129,8 +129,6 @@ typedef struct {
 	struct wl_listener fullscreen;
 	struct wl_listener set_decoration_mode;
 	struct wl_listener destroy_decoration;
-<<<<<<< HEAD
-=======
 	struct wlr_foreign_toplevel_handle_v1 *foreign_toplevel;
 	struct wl_listener factivate;
 	struct wl_listener fclose;
@@ -138,7 +136,6 @@ typedef struct {
 	struct wl_listener fdestroy;
 	struct wlr_box prev; /* layout-relative, includes border */
 	struct wlr_box bounds;
->>>>>>> implement foreign toplevel management
 #ifdef XWAYLAND
 	struct wl_listener activate;
 	struct wl_listener associate;
