@@ -1,7 +1,6 @@
-//TODO Foreign toplevel manager for taskbar.
 //TODO Add min resize.
 //TODO Minimise and maximise.
-//TODO Revert before ipc.
+//TODO Toggle screen on and off.
 
 /*
  * See LICENSE file for copyright and license details.
@@ -130,6 +129,7 @@ typedef struct {
 	struct wl_listener commit;
 	struct wl_listener map;
 	struct wl_listener maximize;
+	struct wl_listener minimize;
 	struct wl_listener unmap;
 	struct wl_listener destroy;
 	struct wl_listener set_title;
@@ -150,7 +150,7 @@ typedef struct {
 #endif
 	unsigned int bw;
 	uint32_t tags;
-	int isfloating, isurgent, isfullscreen;
+	int isfloating, isurgent, isfullscreen, isminimized, ismaximized;
 	uint32_t resize; /* configure serial of a pending resize */
 } Client;
 
@@ -330,6 +330,7 @@ static void killclient(const Arg *arg);
 static void locksession(struct wl_listener *listener, void *data);
 static void mapnotify(struct wl_listener *listener, void *data);
 static void maximizenotify(struct wl_listener *listener, void *data);
+static void minimizenotify(struct wl_listener *listener, void *data);
 static void monocle(Monitor *m);
 static void motionabsolute(struct wl_listener *listener, void *data);
 static void motionnotify(uint32_t time, struct wlr_input_device *device, double sx,
@@ -554,8 +555,7 @@ applyrules(Client *c)
 	setmon(c, mon, newtags);
 }
 
-void
-arrange(Monitor *m)
+void arrange(Monitor *m)
 {
 	Client *c;
 
@@ -1781,6 +1781,11 @@ fullscreennotify(struct wl_listener *listener, void *data)
 {
 	Client *c = wl_container_of(listener, c, fullscreen);
 	setfullscreen(c, client_wants_fullscreen(c));
+}
+
+void minimizenotify(struct wl_listener *listener, void *data) {
+	Client *c = wl_container_of(listener, c, minimize);
+	// Function to minimize window.
 }
 
 void
