@@ -33,6 +33,12 @@ static const int warp_cursor = 1;	/* 1: warp to corner, 0: don’t warp */
 static const int lock_cursor = 0;	/* 1: lock cursor, 0: don't lock */
 
 /* NOTE: ALWAYS keep a rule declared even if you don't use rules (e.g leave at least one example) */
+/* Autostart */
+static const char *const autostart[] = {
+        "wbg", "/path/to/your/image", NULL,
+        NULL /* terminate */
+};
+
 static const Rule rules[] = {
 	/* app_id             title       tags mask     isfloating   monitor */
 	{ "Gimp_EXAMPLE",     NULL,       0,            1,           -1 }, /* Start on currently visible tags floating, not tiled */
